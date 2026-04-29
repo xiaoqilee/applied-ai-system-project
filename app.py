@@ -1,6 +1,6 @@
 import streamlit as st
 from pawpal_system import Owner, Pet, Task, Scheduler
-from ai_planner import run_ai_planner
+from ai_planner import run_ai_planner, validate_recommended_tasks
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
@@ -26,7 +26,7 @@ st.markdown(
 Welcome to PawPal+.
 
 This app lets you add pets, assign tasks, and view a smarter schedule using
-sorting, filtering, recurring task support, and conflict detection.
+sorting, filtering, recurring task support, conflict detection, and AI care planning.
 """
 )
 
@@ -73,19 +73,41 @@ if st.button("Add task"):
         selected_pet = next((pet for pet in owner.pets if pet.name == selected_pet_name), None)
 
         if selected_pet:
-            new_task = Task(task_title, task_time, frequency)
-            selected_pet.add_task(new_task)
-            st.success(f"Task '{task_title}' has been added for {selected_pet.name}.")
-            st.rerun()
+            try:
+                new_task = Task(task_title, task_time, frequency)
+
+                approved_tasks, warnings, rejected_tasks = validate_recommended_tasks(
+                    selected_pet,
+                    [new_task],
+                    selected_pet.tasks
+                )
+
+                for task in approved_tasks:
+                    selected_pet.add_task(task)
+
+                if approved_tasks:
+                    st.success(f"Task '{approved_tasks[0].description}' has been added for {selected_pet.name}.")
+
+                if warnings:
+                    for warning in warnings:
+                        st.warning(warning)
+
+                if rejected_tasks:
+                    st.error("Task was rejected by validation.")
+
+                st.rerun()
+            except ValueError as e:
+                st.error(str(e))
     else:
         st.error("You must first add a pet before adding tasks.")
+
+st.divider()
 
 st.subheader("AI Care Planner")
 
 owner_goal = st.text_input("What is your goal for your pet?", placeholder="e.g. exercise, groom")
 
 if st.button("Generate AI Care Plan"):
-
     if owner.pets and selected_pet_name:
         selected_pet = next((pet for pet in owner.pets if pet.name == selected_pet_name), None)
 
@@ -163,7 +185,7 @@ task_options = []
 task_lookup = {}
 
 for pet in owner.get_pets():
-    for i, task in enumerate(pet.tasks):
+    for task in pet.tasks:
         if not task.completed:
             label = f"{pet.name} - {task.description} at {task.time} ({task.frequency})"
             task_options.append(label)
