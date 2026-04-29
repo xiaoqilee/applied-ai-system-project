@@ -113,3 +113,7 @@ https://github.com/xiaoqilee/applied-ai-system-project
 ### What this project says about me as an AI engineer
 
 This project demonstrates my ability to design and implement an AI-driven system. I built an agentic workflow that generates, validates, and integrates tasks into a working application. It also highlights my focus on reliability and system design. I incorporated guardrails, validation logic, and testing to ensure the system produces consistent and meaningful outputs. 
+
+## Demo Video
+
+https://drive.google.com/file/d/1aD1Zv4BRM6pFwWNGOOH9PPFSY0RRTxwF/view?usp=sharing
