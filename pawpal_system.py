@@ -18,6 +18,17 @@ class Task:
         """Return a human-readable summary of the task."""
         status = "Done" if self.completed else "Pending"
         return f"[{status}] {self.description} at {self.time} ({self.frequency}) — due {self.due_date}"
+    
+    def __post_init__(self):
+        if not self.description.strip():
+            raise ValueError("Task description cannot be empty")
+
+        try:
+            hour, minute = map(int, self.time.split(":"))
+            if not (0 <= hour < 24 and 0 <= minute < 60):
+                raise ValueError
+        except:
+            raise ValueError(f"Invalid time format: {self.time}")
 
 @dataclass
 class Pet:

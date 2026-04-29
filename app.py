@@ -1,5 +1,6 @@
 import streamlit as st
 from pawpal_system import Owner, Pet, Task, Scheduler
+from ai_planner import run_ai_planner
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
@@ -10,6 +11,8 @@ owner = st.session_state.owner
 scheduler = Scheduler(owner)
 
 st.title("🐾 PawPal+")
+
+st.write(f"Managing pets for {owner.name}")
 
 if st.button("Reset app data"):
     st.session_state.owner = Owner("Alice")
@@ -32,7 +35,7 @@ st.divider()
 st.subheader("Owner and Pet Setup")
 owner_name = st.text_input("Owner name", value=owner.name)
 pet_name = st.text_input("Pet name", value="Mochi")
-species = st.selectbox("Species", ["dog", "cat", "other"])
+species = st.selectbox("Species", ["Dog", "Cat", "Other"])
 
 if owner_name:
     owner.name = owner_name
@@ -76,6 +79,35 @@ if st.button("Add task"):
             st.rerun()
     else:
         st.error("You must first add a pet before adding tasks.")
+
+st.subheader("AI Care Planner")
+
+owner_goal = st.text_input("What is your goal for your pet?", placeholder="e.g. exercise, groom")
+
+if st.button("Generate AI Care Plan"):
+
+    if owner.pets and selected_pet_name:
+        selected_pet = next((pet for pet in owner.pets if pet.name == selected_pet_name), None)
+
+        if selected_pet:
+            result = run_ai_planner(
+                selected_pet,
+                owner_goal,
+                selected_pet.tasks
+            )
+
+            for task in result["approved_tasks"]:
+                selected_pet.add_task(task)
+
+            st.success("AI care plan generated and tasks added!")
+
+            if result["warnings"]:
+                for warning in result["warnings"]:
+                    st.warning(warning)
+
+            st.rerun()
+    else:
+        st.error("Please select a pet first.")
 
 st.divider()
 
@@ -157,26 +189,30 @@ else:
 
 st.divider()
 
-st.subheader("Schedule")
+st.subheader(f"{owner.name}'s Schedule")
 
 if st.button("Generate schedule"):
     tasks = scheduler.sort_by_time(owner.get_tasks())
 
     if tasks:
         schedule_rows = []
-        for pet in owner.get_pets():
-            for task in pet.tasks:
-                if task in tasks:
-                    schedule_rows.append(
-                        {
-                            "Pet": pet.name,
-                            "Time": task.time,
-                            "Task": task.description,
-                            "Frequency": task.frequency,
-                            "Due Date": task.due_date,
-                            "Completed": task.completed,
-                        }
-                    )
+
+        for task in tasks:
+            pet_name = next(
+                (pet.name for pet in owner.get_pets() if task in pet.tasks),
+                "Unknown"
+            )
+
+            schedule_rows.append(
+                {
+                    "Pet": pet_name,
+                    "Time": task.time,
+                    "Task": task.description,
+                    "Frequency": task.frequency,
+                    "Due Date": task.due_date,
+                    "Completed": task.completed,
+                }
+            )
 
         st.table(schedule_rows)
     else:
@@ -184,13 +220,13 @@ if st.button("Generate schedule"):
 
 st.divider()
 
-st.subheader("Conflict Warnings")
+st.subheader(f"{owner.name}'s Conflict Warnings")
 
 conflicts = scheduler.find_conflicts()
 
 if conflicts:
     for (due_date, time), conflict_tasks in conflicts.items():
-        st.warning(f"Conflict detected on {due_date} at {time}")
+        st.warning(f"{owner.name} has a conflict on {due_date} at {time}")
         for task in conflict_tasks:
             st.write(f"- {task.description} ({task.frequency})")
 else:
