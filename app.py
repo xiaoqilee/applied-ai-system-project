@@ -34,7 +34,9 @@ st.divider()
 
 st.subheader("Owner and Pet Setup")
 owner_name = st.text_input("Owner name", value=owner.name)
-pet_name = st.text_input("Pet name", value="Mochi")
+if "pet_name_input" not in st.session_state:
+    st.session_state.pet_name_input = "Mochi"
+pet_name = st.text_input("Pet name", key="pet_name_input")
 species = st.selectbox("Species", ["Dog", "Cat", "Other"])
 
 if owner_name:
